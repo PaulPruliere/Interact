@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+ 
+<style> 
+	/* set the CSS */ 
+	body { 
+		font: 12px Arial;
+		font-family: 'Lato', serif;
+		padding-left: 50px;
+		padding-right: 50px;		
+		}
+	.page-header{
+		font-family: 'Lato', serif;
+		color: #8e929d;
+	}
+	 
+	path { 
+		stroke-width: 2;
+		fill: none;
+	}
+	.userDisplay{
+		float:right;
+	}
+	#sebColor{
+		color:steelblue;
+	}
+	#michaelColor{
+		color:#B40431;
+	}
+	.checkbox label{
+		font-size:20px;
+		margin-right:20px;
+		font-family: 'Lato', serif;
+		font-weight: lighter;
+	}
+
+	.axis path,
+	.axis line {
+		fill: none;
+		stroke-width: 1;
+		stroke: lightgrey;
+		shape-rendering: crispEdges;
+	}
+	.axis text {
+		fill: rgb(169, 178, 189);
+		stroke: none;
+		font-size:18px;
+		font-weight: lighter;
+	}
+	.grid .tick {
+		stroke: lightgrey;
+		opacity: 0.7;
+	}
+	.grid path {
+			stroke-width: 0;
+	}
+
+	.place-label{
+		font-size: 15px;
+		stroke: lightgrey;
+	}
+	.overlay {
+		fill: none;
+		pointer-events: all;
+}
+	#startDate{
+		margin-top:10px;
+		width: 180px;
+	}
+
+</style>
+<html>
+	<head>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+	</head>
+	<body>
+		<div class="page-header">
+			<h1>Interactions</h1>
+		</div>
+
+		<div class="btn-group btn-group-lg" role="group" id = "timePeriod" aria-label="...">
+			<button type="button" class="btn btn-default" onclick="displayPeriod(7)">Week</button>
+			<button type="button" class="btn btn-default" onclick="displayPeriod(30)">Month</button>
+			<button type="button" class="btn btn-default" onclick="displayPeriod(90)">3 Months</button>
+			<button type="button" class="btn btn-default" onclick="displayPeriod(365)">Year</button>
+		</div>
+		<div id="dataMichael" data="{{ jsonMichael }}"></div>
+		<div id="dataSeb" data="{{ jsonSeb }}"></div>
+		<div class="btn-group btn-group-lg" role="group" id = "timePeriod" aria-label="...">
+			 <a href="deconnexion" class="btn btn-default" >logout</a>
+		</div>
+		<div class="userDisplay">
+			<div class="checkbox" id="sebastianCheck">
+				<label>
+					<input type="checkbox" id="sebCheckBox" value="" onclick="displayLine('seb')" >
+					Sebastian <span class="glyphicon glyphicon-minus" id="sebColor" aria-hidden="true"></span>
+				</label>
+			</div>
+			<div class="checkbox" id="michaelCheck">
+				<label>
+					<input type="checkbox" id="michaelCheckBox" value=""  onclick="displayLine('michael')">
+					Michael <span class="glyphicon glyphicon-minus" id="michaelColor" aria-hidden="true"></span>
+				</label>
+			</div>
+		</div>
+
+		<script type="text/javascript">
+
+			function displayLine(id){
+				var active = document.getElementById(id+'CheckBox').checked ? false : true ,
+						newOpacity = active ? 0 : 1;
+				d3.select("#"+id+"Line").style("opacity", newOpacity);
+			}
+
+			function getDate(d) {
+				return new Date(d.jsonDate);
+			}
+
+			function displayPeriod(nbDays) {
+				// Scale the range of the data again 
+				var minX = x.domain()[0],
+						maxX = x.domain()[1],
+						newMax = new Date(minX),
+						newMin = new Date(maxX);
+				newMax.setDate(minX.getDate()+nbDays);
+				newMin.setDate(maxX.getDate()-nbDays);
+				console.log(newMin);
+				console.log(maxX);
+				x.domain([newMin, maxX]);
+				y.domain([0, d3.max(dataMichael, function(d) { return d.interactions; })]);
+
+				// Select the section we want to apply our changes to
+				var svg = d3.select("body").transition();
+
+				// Make the changes
+				svg.select("#michaelLine")   // change the line
+						.duration(750)
+						.attr("d", valueline(dataMichael))
+				svg.select(".x.axis") // change the x axis
+						.duration(750)
+						.call(xAxis);
+
+				// Make the changes
+				svg.select("#sebLine")   // change the line
+						.duration(750)
+						.attr("d", valueline(dataSeb));
+				svg.select(".x.axis") // change the x axis
+						.duration(750)
+						.call(xAxis);
+			}
+
+			// Set the dimensions of the canvas / graph
+			var	margin = {top: 30, right: 40, bottom: 30, left: 40},
+				width = 920 - margin.left - margin.right,
+				height = 400 - margin.top - margin.bottom;
+		
+			// Set the ranges
+			var	x = d3.time.scale().range([0, width]);
+			var	y = d3.scale.linear().range([height, 0]);
+			 
+			// Define the axes
+			var	xAxis = d3.svg.axis().scale(x)
+				.orient("bottom").ticks(5);
+			 
+			var	yAxis = d3.svg.axis().scale(y)
+				.orient("left").ticks(5);
+			 
+			// Define the line
+			var	valueline = d3.svg.line()
+				.x(function(d) { return x(d.date); })
+				.y(function(d) { return y(d.interactions); })
+				.interpolate("basis");
+
+			// Adds the svg canvas
+			var	svg = d3.select("body")
+				.append("svg")
+					.attr("width", width + margin.left + margin.right)
+					.attr("height", height + margin.top + margin.bottom)
+					.style("display","block")
+					.style("margin","auto")
+					.style("margin-top","50px")
+				.append("g")
+					.attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+			// Parse the date
+			var	parseDate = d3.time.format("%m/%d/%Y").parse;
+			
+			// Get the data
+			data = document.getElementById("dataSeb").getAttribute("data");
+			dataSeb = JSON.parse(data);
+			dataSeb.forEach(function(d){
+				d.date = parseDate(d.date);
+				d.interactions = +d.interactions;
+				});
+				// Get the data
+			data = document.getElementById("dataMichael").getAttribute("data");
+			dataMichael = JSON.parse(data);
+			dataMichael.forEach(function(d){
+				d.date = parseDate(d.date);
+				d.interactions = +d.interactions;
+				});
+
+			// sort data by date
+			dataMichael.sort(function(a,b){
+				  return new Date(b.date) - new Date(a.date);
+				});
+			// sort data by date
+			dataSeb.sort(function(a,b){
+				  return new Date(b.date) - new Date(a.date);
+				});
+
+
+				// Scale the range of the dataMichael
+				x.domain(d3.extent(dataMichael, function(d) { return d.date; }));
+				y.domain([0, d3.max(dataMichael, function(d) { return d.interactions; })]);
+			 
+				// Add the valueline path.
+				svg.append("path")	
+					.attr("class", "line")
+					.attr("id", "michaelLine")
+					.attr('stroke', '#B40431')
+					.attr("d", valueline(dataMichael));
+
+			 
+				// Add the valueline path.
+				svg.append("path")	
+					.attr("class", "line")
+					.attr("id", "sebLine")
+					.attr('stroke', 'steelblue')
+					.attr("d", valueline(dataSeb));
+
+				// Add the X Axis
+				svg.append("g")
+					.attr("class", "x axis")
+					.attr("transform", "translate(0," + height + ")")
+					.call(xAxis);
+			 
+				// Add the Y Axis
+				svg.append("g")
+					.attr("class", "y axis")
+					.call(yAxis);
+
+				// Horizontal grid
+				svg.append("g")         
+						.attr("class", "grid horizontal")
+						.call(yAxis
+						.orient("left")
+						.tickSize(-width, 0, 0)
+						.tickFormat("")
+					);
+
+		</script>
+	</body>
+</html>
+
